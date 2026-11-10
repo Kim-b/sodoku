@@ -384,6 +384,7 @@
       let difficulty = "medium";
       let solved = false;
       let cellEls = [];
+      let generationId = 0;
 
       function emptyGrid() {
         return Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
@@ -542,7 +543,7 @@
         if (puzzle[r][c] !== 0) return;
         grid[r][c] = 0;
         renderCells();
-        setStatus("");
+        updateConflictStatus();
       }
 
       function conflictsFor(r, c, val) {
@@ -619,10 +620,14 @@
         return true;
       }
 
+      function updateConflictStatus() {
+        const hasConflict = cellEls.some((el) => el.classList.contains("conflict"));
+        setStatus(hasConflict ? "Conflict — check highlighted cells." : "", hasConflict ? "warn" : "");
+      }
+
       function checkSolved() {
         if (!isCompleteAndValid()) {
-          const hasConflict = cellEls.some((el) => el.classList.contains("conflict"));
-          setStatus(hasConflict ? "Conflict — check highlighted cells." : "", hasConflict ? "warn" : "");
+          updateConflictStatus();
           return;
         }
         solved = true;
@@ -638,6 +643,8 @@
       }
 
       function startNew() {
+        const thisGeneration = ++generationId;
+        const requestedDifficulty = difficulty;
         setStatus("Generating…");
         boardEl.classList.remove("solved");
         solved = false;
@@ -646,7 +653,9 @@
         // Yield so the status can paint before generation
         requestAnimationFrame(() => {
           setTimeout(() => {
-            const result = generatePuzzle(difficulty);
+            if (thisGeneration !== generationId) return;
+            const result = generatePuzzle(requestedDifficulty);
+            if (thisGeneration !== generationId) return;
             solution = result.solution;
             puzzle = result.puzzle;
             grid = cloneGrid(puzzle);
